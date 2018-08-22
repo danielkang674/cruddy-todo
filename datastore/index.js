@@ -8,47 +8,79 @@ var items = {};
 // Public API - Fix these CRUD functions ///////////////////////////////////////
 
 exports.create = (text, callback) => {
-  var id = counter.getNextUniqueId();
-  items[id] = text;
-  callback(null, {id: id, text: text});
+  counter.getNextUniqueId((err, id) => {
+    if (err) {
+      callback(err, null);
+    }
+    fs.writeFile(exports.dataDir + '/' + id.toString() + '.txt', text, (err, data) => {
+      if (err) {
+        callback(err, null);
+      } else {
+        callback(null, { id: id, text: text });
+      }
+    });
+  });
 };
 
 exports.readOne = (id, callback) => {
-  var item = items[id];
-  if (!item) {
-    callback(new Error(`No item with id: ${id}`));
-  } else {
-    callback(null, {id: id, text: item});
-  }
+  fs.readFile(exports.dataDir + '/' + id.toString() + '.txt', (err, item) => {
+    if (err) {
+      callback(new Error(`No item with id: ${id}`), {});
+    } else {
+      callback(null, { id: id, text: item.toString() });
+    }
+  });
 };
 
 exports.readAll = (callback) => {
-  var data = [];
-  _.each(items, (item, idx) => {
-    data.push({ id: idx, text: items[idx] });
+  fs.readdir(exports.dataDir, (err, items) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      var data = [];
+      _.each(items, (item, idx) => {
+        let trimmed = item.slice(0, item.indexOf('.txt'));
+        data.push({ id: trimmed, text: trimmed });
+      });
+      callback(null, data);
+    }
   });
-  callback(null, data);
 };
 
 exports.update = (id, text, callback) => {
-  var item = items[id];
-  if (!item) {
-    callback(new Error(`No item with id: ${id}`));
-  } else {
-    items[id] = text;
-    callback(null, {id: id, text: text});
-  }
+  //var item = items[id];
+  fs.readFile(exports.dataDir + '/' + id.toString() + '.txt', (err, file) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      fs.writeFile(exports.dataDir + '/' + id.toString() + '.txt', text, (err, data) => {
+        if (err) {
+          callback(err, null);
+        } else {
+          callback(null, { id: id, text: text });
+        }
+      });
+    }
+  });
+
 };
 
 exports.delete = (id, callback) => {
-  var item = items[id];
-  delete items[id];
-  if(!item) {
-    // report an error if item not found
-    callback(new Error(`No item with id: ${id}`))
-  } else {
-    callback();
-  }
+  fs.unlink(exports.dataDir + '/' + id.toString() + '.txt', (err, item) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, item);
+    }
+  });
+  // var item = items[id];
+  // delete items[id];
+  // if (!item) {
+  //   // report an error if item not found
+  //   callback(new Error(`No item with id: ${id}`));
+  // } else {
+  //   callback();
+  // }
 };
 
 // Config+Initialization code -- DO NOT MODIFY /////////////////////////////////
